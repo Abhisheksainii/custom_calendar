@@ -1,27 +1,47 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flutter/material.dart';
+// ignore: depend_on_referenced_packages
+import 'package:intl/intl.dart';
 
 class CustomCalendar extends StatefulWidget {
-  const CustomCalendar({super.key});
-
+  const CustomCalendar({
+    required this.startDate,
+    required this.endDate,
+    super.key,
+  });
+  final DateTime startDate;
+  final DateTime endDate;
   @override
   State<CustomCalendar> createState() => _CustomCalendarState();
 }
 
 class _CustomCalendarState extends State<CustomCalendar> {
-  DateTime _currentDateTime = DateTime.now();
+  late DateTime _currentDateTime;
 
-  final _controller = PageController(initialPage: DateTime.now().month);
+  late final PageController _controller;
 
-  int currentIndex = DateTime.now().month;
+  late int _currentIndex;
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex =
+        _totalMonths(startDate: widget.startDate, endDate: widget.endDate) -
+            _totalMonths(startDate: DateTime.now(), endDate: widget.endDate);
+    _controller = PageController(initialPage: _currentIndex);
+
+    _currentDateTime = DateTime.now();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.kBorderColor),
+        border: Border.all(color: Color(0xFFCCCCCC)),
       ),
-      height: 470,
+      // TODO:@abhishek adjust as per UI
+      height: 500,
       child: Column(
         children: [
           const SizedBox(
@@ -30,12 +50,14 @@ class _CustomCalendarState extends State<CustomCalendar> {
           MonthYearHeader(
             currentDateTime: _currentDateTime,
             pageController: _controller,
+            startDate: widget.startDate,
+            endDate: widget.endDate,
           ),
           const SizedBox(
             height: 5,
           ),
           Divider(
-            color: AppColors.kBorderColor,
+            color: Color(0xFFCCCCCC),
           ),
           const SizedBox(
             height: 10,
@@ -47,71 +69,23 @@ class _CustomCalendarState extends State<CustomCalendar> {
           Expanded(
             child: PageView.builder(
               controller: _controller,
-              itemCount: DateTime.now().month + 2,
+              itemCount: _totalMonths(
+                startDate: widget.startDate,
+                endDate: widget.endDate,
+              ),
               onPageChanged: (index) {
                 setState(() {
-                  _currentDateTime = DateTime(
-                    (currentIndex % 12) == 0
-                        ? _currentDateTime.year + 1
-                        : _currentDateTime.year,
-                    index,
-                    1,
+                  _currentDateTime = _getChangedMonth(
+                    currentDate: _currentDateTime,
+                    currentIndex: _currentIndex,
+                    index: index,
                   );
-                  currentIndex = index;
+                  _currentIndex = index;
                 });
               },
               itemBuilder: (context, index) {
                 return buildCalendar(_currentDateTime);
               },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Container(
-              height: 60,
-              decoration: BoxDecoration(
-                color: AppColors.kblueGrey,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 45,
-                    height: 45,
-                    decoration: BoxDecoration(
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(50.0)),
-                      border: Border.all(
-                        color: AppColors.kRed,
-                        width: 1.5,
-                      ),
-                    ),
-                    // Pass selected date from the stream or bloc
-                    child: Center(
-                      child: Text(
-                        "${_currentDateTime.day} / ${_currentDateTime.month}",
-                        style: TextStyle(
-                          color: AppColors.kRed,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    width: 10,
-                  ),
-                  Text(
-                    "Absent",
-                    style: TextStyle(
-                      color: AppColors.kRed,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],
@@ -120,8 +94,49 @@ class _CustomCalendarState extends State<CustomCalendar> {
   }
 }
 
+DateTime _getChangedMonth({
+  required int currentIndex,
+  required int index,
+  required DateTime currentDate,
+}) {
+  if (index < currentIndex) {
+    if (currentDate.month == 1) {
+      return DateTime(
+        currentDate.year - 1,
+        12,
+        1,
+      );
+    } else {
+      return DateTime(
+        currentDate.year,
+        currentDate.month - 1,
+        1,
+      );
+    }
+  } else {
+    if (currentDate.month == 12) {
+      return DateTime(
+        currentDate.year + 1,
+        1,
+        1,
+      );
+    } else {
+      return DateTime(
+        currentDate.year,
+        currentDate.month + 1,
+        1,
+      );
+    }
+  }
+}
+
+int _totalMonths({required DateTime startDate, required DateTime endDate}) {
+  return ((endDate.year - startDate.year) * 12 +
+      ((endDate.month - startDate.month) + 1));
+}
+
 Widget buildCalendar(DateTime currentDateTime) {
-  final textStyle = const TextStyle(
+  final textStyle = TextStyle(
     fontSize: 11,
   );
   final daysInCurrentMonth =
@@ -155,7 +170,7 @@ Widget buildCalendar(DateTime currentDateTime) {
             padding: const EdgeInsets.only(left: 5),
             child: CalendarDateWidget(
               date: date,
-              textStyle: textStyle,
+              textStyle: TextStyle(color: Colors.grey),
               activity: "activity",
             ),
           );
@@ -167,7 +182,11 @@ Widget buildCalendar(DateTime currentDateTime) {
             padding: const EdgeInsets.only(left: 3),
             child: CalendarDateWidget(
               activity: "retialing",
-              isSelected: date.day == DateTime.now().day,
+              // to be changed and make it like current date as only circular border
+              //and selected to be colored one and at init selected is also DateTime.now
+              isSelected: date.day == DateTime.now().day &&
+                  date.month == DateTime.now().month &&
+                  date.year == DateTime.now().year,
               date: date,
               textStyle: textStyle,
             ),
@@ -201,7 +220,7 @@ class CalendarDateWidget extends StatelessWidget {
     return isSelected
         ? CircleAvatar(
             radius: 20,
-            backgroundColor: AppColors.kHomeOrange,
+            backgroundColor: Color(0xffEE6C35),
             child: Text(
               date.day.toString(),
               style: textStyle.copyWith(
@@ -249,28 +268,39 @@ class Dot extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: 2,
-      backgroundColor: AppColors.kHomeGreen,
+      backgroundColor: Color(0xff4DA430),
     );
   }
 }
 
 class MonthYearHeader extends StatelessWidget {
-  MonthYearHeader({
+  const MonthYearHeader({
     required this.currentDateTime,
     required this.pageController,
+    required this.startDate,
+    required this.endDate,
     super.key,
   });
 
   final DateTime currentDateTime;
   final PageController pageController;
+  final DateTime startDate;
+  final DateTime endDate;
 
-  final lastSecondMonthDateTime = DateTime(
-    DateTime.now().year,
-    DateTime.now().month - 2,
-    DateTime.now().day,
-  );
-  bool movePrev() {
-    return currentDateTime.month - 1 != lastSecondMonthDateTime.month;
+  bool _prevEnabled() {
+    if (currentDateTime.isAfter(startDate)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  bool _nextEnabled() {
+    if (currentDateTime.isBefore(endDate)) {
+      return true;
+    }
+
+    return false;
   }
 
   @override
@@ -282,7 +312,7 @@ class MonthYearHeader extends StatelessWidget {
         children: [
           InkWell(
             onTap: () {
-              if (pageController.page! > 0 && movePrev()) {
+              if (_prevEnabled()) {
                 pageController.previousPage(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
@@ -291,28 +321,31 @@ class MonthYearHeader extends StatelessWidget {
             },
             child: Icon(
               Icons.arrow_back_ios,
-              color: AppColors.kDarkBlue,
+              // color grey if disabled
+              color: Color(0xFF072A72),
               size: 18,
             ),
           ),
           Text(
             "${DateFormat("MMMM").format(currentDateTime)} ${DateFormat("y").format(currentDateTime)}",
             style: TextStyle(
-              color: AppColors.kDarkBlue,
+              color: Color(0xFF072A72),
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
           ),
           InkWell(
             onTap: () {
-              pageController.nextPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
+              if (_nextEnabled()) {
+                pageController.nextPage(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
             },
             child: Icon(
               Icons.arrow_forward_ios,
-              color: AppColors.kDarkBlue,
+              color: Color(0xFF072A72),
               size: 18,
             ),
           ),
