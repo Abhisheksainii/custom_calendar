@@ -25,6 +25,7 @@ class _CustomCalendarState extends State<CustomCalendar> {
   @override
   void initState() {
     super.initState();
+    // to implement function for current index if end date goes above current date
     _currentIndex =
         _totalMonths(startDate: widget.startDate, endDate: widget.endDate) -
             _totalMonths(startDate: DateTime.now(), endDate: widget.endDate);
@@ -40,7 +41,6 @@ class _CustomCalendarState extends State<CustomCalendar> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Color(0xFFCCCCCC)),
       ),
-      // TODO:@abhishek adjust as per UI
       height: 500,
       child: Column(
         children: [
@@ -182,9 +182,12 @@ Widget buildCalendar(DateTime currentDateTime) {
             padding: const EdgeInsets.only(left: 3),
             child: CalendarDateWidget(
               activity: "retialing",
-              // to be changed and make it like current date as only circular border
-              //and selected to be colored one and at init selected is also DateTime.now
-              isSelected: date.day == DateTime.now().day &&
+              // selected to be implemented as per usee click
+              // initially it is DateTime.now()
+              // isSelected: date.day == DateTime.now().day &&
+              //     date.month == DateTime.now().month &&
+              //     date.year == DateTime.now().year,
+              isToday: date.day == DateTime.now().day &&
                   date.month == DateTime.now().month &&
                   date.year == DateTime.now().year,
               date: date,
@@ -204,6 +207,7 @@ class CalendarDateWidget extends StatelessWidget {
     required this.activity,
     this.onTap,
     this.isSelected = false,
+    this.isToday = false,
     this.dotColor,
     super.key,
   });
@@ -214,6 +218,7 @@ class CalendarDateWidget extends StatelessWidget {
   final Color? dotColor;
   final bool isSelected;
   final VoidCallback? onTap;
+  final bool isToday;
 
   @override
   Widget build(BuildContext context) {
@@ -228,33 +233,43 @@ class CalendarDateWidget extends StatelessWidget {
               ),
             ),
           )
-        : Padding(
-            padding: const EdgeInsets.only(top: 9),
-            child: Column(
-              children: [
-                Text(
+        : isToday
+            ? CircleAvatar(
+                radius: 20,
+                child: Text(
                   date.day.toString(),
                   style: textStyle.copyWith(
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(
-                  height: 6,
+              )
+            : Padding(
+                padding: const EdgeInsets.only(top: 9),
+                child: Column(
+                  children: [
+                    Text(
+                      date.day.toString(),
+                      style: textStyle.copyWith(
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 6,
+                    ),
+                    if (!isSelected)
+                      Dot(
+                        color: dotColor ?? Colors.transparent,
+                      ),
+                    const SizedBox(
+                      height: 3,
+                    ),
+                    Text(
+                      activity,
+                      style: textStyle.copyWith(fontSize: 8),
+                    ),
+                  ],
                 ),
-                if (!isSelected)
-                  Dot(
-                    color: dotColor ?? Colors.transparent,
-                  ),
-                const SizedBox(
-                  height: 3,
-                ),
-                Text(
-                  activity,
-                  style: textStyle.copyWith(fontSize: 8),
-                ),
-              ],
-            ),
-          );
+              );
   }
 }
 
