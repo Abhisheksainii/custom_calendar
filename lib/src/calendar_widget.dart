@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
+
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 
@@ -8,10 +9,12 @@ class CustomCalendar extends StatefulWidget {
   const CustomCalendar({
     required this.startDate,
     required this.endDate,
+    this.onTap,
     super.key,
   });
   final DateTime startDate;
   final DateTime endDate;
+  final void Function(DateTime date)? onTap;
   @override
   State<CustomCalendar> createState() => _CustomCalendarState();
 }
@@ -22,10 +25,10 @@ class _CustomCalendarState extends State<CustomCalendar> {
   late final PageController _controller;
 
   late int _currentIndex;
+  DateTime _selectedDate = DateTime.now();
   @override
   void initState() {
     super.initState();
-    // to implement function for current index if end date goes above current date
     _currentIndex =
         _totalMonths(startDate: widget.startDate, endDate: widget.endDate) -
             _totalMonths(startDate: DateTime.now(), endDate: widget.endDate);
@@ -84,7 +87,15 @@ class _CustomCalendarState extends State<CustomCalendar> {
                 });
               },
               itemBuilder: (context, index) {
-                return buildCalendar(_currentDateTime);
+                return buildCalendar(
+                  currentDateTime: _currentDateTime,
+                  selectedDate: _selectedDate,
+                  onTap: (date) {
+                    setState(() {
+                      _selectedDate = date;
+                    });
+                  },
+                );
               },
             ),
           ),
@@ -135,7 +146,11 @@ int _totalMonths({required DateTime startDate, required DateTime endDate}) {
       ((endDate.month - startDate.month) + 1));
 }
 
-Widget buildCalendar(DateTime currentDateTime) {
+Widget buildCalendar({
+  required DateTime currentDateTime,
+  required DateTime selectedDate,
+  void Function(DateTime date)? onTap,
+}) {
   final textStyle = TextStyle(
     fontSize: 11,
   );
@@ -172,6 +187,10 @@ Widget buildCalendar(DateTime currentDateTime) {
               date: date,
               textStyle: TextStyle(color: Colors.grey),
               activity: "activity",
+              onTap: (date) {
+                // aslo write code for changing page  to prev month
+                onTap?.call(date);
+              },
             ),
           );
         } else {
@@ -182,16 +201,17 @@ Widget buildCalendar(DateTime currentDateTime) {
             padding: const EdgeInsets.only(left: 3),
             child: CalendarDateWidget(
               activity: "retialing",
-              // selected to be implemented as per usee click
-              // initially it is DateTime.now()
-              // isSelected: date.day == DateTime.now().day &&
-              //     date.month == DateTime.now().month &&
-              //     date.year == DateTime.now().year,
+              isSelected: date.day == selectedDate.day &&
+                  date.month == selectedDate.month &&
+                  date.year == selectedDate.year,
               isToday: date.day == DateTime.now().day &&
                   date.month == DateTime.now().month &&
                   date.year == DateTime.now().year,
               date: date,
               textStyle: textStyle,
+              onTap: (date) {
+                onTap?.call(date);
+              },
             ),
           );
         }
@@ -205,9 +225,9 @@ class CalendarDateWidget extends StatelessWidget {
     required this.date,
     required this.textStyle,
     required this.activity,
-    this.onTap,
     this.isSelected = false,
     this.isToday = false,
+    this.onTap,
     this.dotColor,
     super.key,
   });
@@ -217,59 +237,64 @@ class CalendarDateWidget extends StatelessWidget {
   final String activity;
   final Color? dotColor;
   final bool isSelected;
-  final VoidCallback? onTap;
+  final void Function(DateTime date)? onTap;
   final bool isToday;
 
   @override
   Widget build(BuildContext context) {
-    return isSelected
-        ? CircleAvatar(
-            radius: 20,
-            backgroundColor: Color(0xffEE6C35),
-            child: Text(
-              date.day.toString(),
-              style: textStyle.copyWith(
-                color: Colors.white,
+    return InkWell(
+      onTap: () {
+        onTap?.call(date);
+      },
+      child: isSelected
+          ? CircleAvatar(
+              radius: 20,
+              backgroundColor: Color(0xffEE6C35),
+              child: Text(
+                date.day.toString(),
+                style: textStyle.copyWith(
+                  color: Colors.white,
+                ),
               ),
-            ),
-          )
-        : isToday
-            ? CircleAvatar(
-                radius: 20,
-                child: Text(
-                  date.day.toString(),
-                  style: textStyle.copyWith(
-                    color: Colors.black,
+            )
+          : isToday
+              ? CircleAvatar(
+                  radius: 20,
+                  child: Text(
+                    date.day.toString(),
+                    style: textStyle.copyWith(
+                      color: Colors.black,
+                    ),
+                  ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.only(top: 9),
+                  child: Column(
+                    children: [
+                      Text(
+                        date.day.toString(),
+                        style: textStyle.copyWith(
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 6,
+                      ),
+                      if (!isSelected)
+                        Dot(
+                          color: dotColor ?? Colors.transparent,
+                        ),
+                      const SizedBox(
+                        height: 3,
+                      ),
+                      Text(
+                        activity,
+                        style: textStyle.copyWith(fontSize: 8),
+                      ),
+                    ],
                   ),
                 ),
-              )
-            : Padding(
-                padding: const EdgeInsets.only(top: 9),
-                child: Column(
-                  children: [
-                    Text(
-                      date.day.toString(),
-                      style: textStyle.copyWith(
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 6,
-                    ),
-                    if (!isSelected)
-                      Dot(
-                        color: dotColor ?? Colors.transparent,
-                      ),
-                    const SizedBox(
-                      height: 3,
-                    ),
-                    Text(
-                      activity,
-                      style: textStyle.copyWith(fontSize: 8),
-                    ),
-                  ],
-                ),
-              );
+    );
   }
 }
 
@@ -303,7 +328,11 @@ class MonthYearHeader extends StatelessWidget {
   final DateTime endDate;
 
   bool _prevEnabled() {
-    if (currentDateTime.isAfter(startDate)) {
+    if (currentDateTime.year > startDate.year) {
+      return true;
+    }
+    if (currentDateTime.year == startDate.year &&
+        currentDateTime.month > startDate.month) {
       return true;
     }
 
@@ -311,7 +340,11 @@ class MonthYearHeader extends StatelessWidget {
   }
 
   bool _nextEnabled() {
-    if (currentDateTime.isBefore(endDate)) {
+    if (currentDateTime.year < endDate.year) {
+      return true;
+    }
+    if (currentDateTime.year == endDate.year &&
+        currentDateTime.month < endDate.month) {
       return true;
     }
 
@@ -325,20 +358,21 @@ class MonthYearHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          InkWell(
-            onTap: () {
-              if (_prevEnabled()) {
+          Visibility(
+            visible: _prevEnabled(),
+            child: InkWell(
+              onTap: () {
                 pageController.previousPage(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                 );
-              }
-            },
-            child: Icon(
-              Icons.arrow_back_ios,
-              // color grey if disabled
-              color: Color(0xFF072A72),
-              size: 18,
+              },
+              child: Icon(
+                Icons.arrow_back_ios,
+                // color grey if disabled
+                color: Color(0xFF072A72),
+                size: 18,
+              ),
             ),
           ),
           Text(
@@ -349,19 +383,20 @@ class MonthYearHeader extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          InkWell(
-            onTap: () {
-              if (_nextEnabled()) {
+          Visibility(
+            visible: _nextEnabled(),
+            child: InkWell(
+              onTap: () {
                 pageController.nextPage(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                 );
-              }
-            },
-            child: Icon(
-              Icons.arrow_forward_ios,
-              color: Color(0xFF072A72),
-              size: 18,
+              },
+              child: Icon(
+                Icons.arrow_forward_ios,
+                color: Color(0xFF072A72),
+                size: 18,
+              ),
             ),
           ),
         ],
