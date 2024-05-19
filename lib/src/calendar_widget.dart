@@ -94,6 +94,7 @@ class _CustomCalendarState extends State<CustomCalendar> {
                     setState(() {
                       _selectedDate = date;
                     });
+                    widget.onTap?.call(date);
                   },
                 );
               },
@@ -149,7 +150,7 @@ int _totalMonths({required DateTime startDate, required DateTime endDate}) {
 Widget buildCalendar({
   required DateTime currentDateTime,
   required DateTime selectedDate,
-  void Function(DateTime date)? onTap,
+  required void Function(DateTime date) onTap,
 }) {
   final textStyle = TextStyle(
     fontSize: 11,
@@ -189,7 +190,7 @@ Widget buildCalendar({
               activity: "activity",
               onTap: (date) {
                 // aslo write code for changing page  to prev month
-                onTap?.call(date);
+                onTap.call(date);
               },
             ),
           );
@@ -210,7 +211,7 @@ Widget buildCalendar({
               date: date,
               textStyle: textStyle,
               onTap: (date) {
-                onTap?.call(date);
+                onTap.call(date);
               },
             ),
           );
@@ -225,9 +226,9 @@ class CalendarDateWidget extends StatelessWidget {
     required this.date,
     required this.textStyle,
     required this.activity,
+    required this.onTap,
     this.isSelected = false,
     this.isToday = false,
-    this.onTap,
     this.dotColor,
     super.key,
   });
@@ -237,14 +238,14 @@ class CalendarDateWidget extends StatelessWidget {
   final String activity;
   final Color? dotColor;
   final bool isSelected;
-  final void Function(DateTime date)? onTap;
+  final void Function(DateTime date) onTap;
   final bool isToday;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        onTap?.call(date);
+        onTap.call(date);
       },
       child: isSelected
           ? CircleAvatar(
