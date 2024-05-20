@@ -144,6 +144,9 @@ Widget buildCalendar(DateTime currentDateTime) {
   final firstDayofMonth =
       DateTime(currentDateTime.year, currentDateTime.month, 1);
   final weekDayofFirstDay = firstDayofMonth.weekday;
+  final lastDayofMonth =
+      DateTime(currentDateTime.year, currentDateTime.month + 1, 0);
+  final weekDayofLastDay = lastDayofMonth.weekday;
 
   final daysInPreviousMonth =
       firstDayofMonth.subtract(const Duration(days: 1)).day;
@@ -151,7 +154,8 @@ Widget buildCalendar(DateTime currentDateTime) {
     padding: const EdgeInsets.symmetric(horizontal: 8),
     child: GridView.builder(
       shrinkWrap: true,
-      itemCount: daysInCurrentMonth + (weekDayofFirstDay - 1),
+      itemCount:
+          daysInCurrentMonth + (weekDayofFirstDay - 1) + (7 - weekDayofLastDay),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         mainAxisSpacing: 15,
         crossAxisCount: 7,
@@ -164,7 +168,7 @@ Widget buildCalendar(DateTime currentDateTime) {
               ? currentDateTime.year - 1
               : currentDateTime.year;
           final month =
-              currentDateTime.month - 1 == 0 ? 12 : currentDateTime.year - 1;
+              currentDateTime.month - 1 == 0 ? 12 : currentDateTime.month - 1;
           final date = DateTime(year, month, prevMonthDay);
           return Padding(
             padding: const EdgeInsets.only(left: 5),
