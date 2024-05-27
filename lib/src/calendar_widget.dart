@@ -200,32 +200,7 @@ Widget buildCalendar({
               activity: "activity",
               enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
               onTap: (date) {
-                // aslo write code for changing page  to prev month
-                if (date.year == currentDateTime.year) {
-                  if (date.month < currentDateTime.month) {
-                    pageController.previousPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  } else if (date.month > currentDateTime.month) {
-                    pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
-                }
-                if (date.year < currentDateTime.year) {
-                  pageController.previousPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                }
-                if (date.year > currentDateTime.year) {
-                  pageController.nextPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                }
+                _pageChangeOnDateTap(date, currentDateTime, pageController);
                 onTap.call(date);
               },
             ),
@@ -248,31 +223,7 @@ Widget buildCalendar({
               enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
               textStyle: textStyle,
               onTap: (date) {
-                if (date.year == currentDateTime.year) {
-                  if (date.month < currentDateTime.month) {
-                    pageController.previousPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  } else if (date.month > currentDateTime.month) {
-                    pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
-                }
-                if (date.year < currentDateTime.year) {
-                  pageController.previousPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                }
-                if (date.year > currentDateTime.year) {
-                  pageController.nextPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                }
+                _pageChangeOnDateTap(date, currentDateTime, pageController);
                 onTap.call(date);
               },
             ),
@@ -281,6 +232,35 @@ Widget buildCalendar({
       },
     ),
   );
+}
+
+void _pageChangeOnDateTap(
+    DateTime date, DateTime currentDateTime, PageController pageController) {
+  if (date.year == currentDateTime.year) {
+    if (date.month < currentDateTime.month) {
+      pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else if (date.month > currentDateTime.month) {
+      pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+  if (date.year < currentDateTime.year) {
+    pageController.previousPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+  if (date.year > currentDateTime.year) {
+    pageController.nextPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
 }
 
 class CalendarDateWidget extends StatelessWidget {
