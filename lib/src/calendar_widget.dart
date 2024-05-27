@@ -90,6 +90,9 @@ class _CustomCalendarState extends State<CustomCalendar> {
                 return buildCalendar(
                   currentDateTime: _currentDateTime,
                   selectedDate: _selectedDate,
+                  pageController: _controller,
+                  startDate: widget.startDate,
+                  endDate: widget.endDate,
                   onTap: (date) {
                     setState(() {
                       _selectedDate = date;
@@ -151,6 +154,9 @@ Widget buildCalendar({
   required DateTime currentDateTime,
   required DateTime selectedDate,
   required void Function(DateTime date) onTap,
+  required PageController pageController,
+  required DateTime startDate,
+  required DateTime endDate,
 }) {
   final textStyle = TextStyle(
     fontSize: 11,
@@ -192,8 +198,9 @@ Widget buildCalendar({
               date: date,
               textStyle: TextStyle(color: Colors.grey),
               activity: "activity",
+              enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
               onTap: (date) {
-                // aslo write code for changing page  to prev month
+                _pageChangeOnDateTap(date, currentDateTime, pageController);
                 onTap.call(date);
               },
             ),
@@ -213,8 +220,10 @@ Widget buildCalendar({
                   date.month == DateTime.now().month &&
                   date.year == DateTime.now().year,
               date: date,
+              enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
               textStyle: textStyle,
               onTap: (date) {
+                _pageChangeOnDateTap(date, currentDateTime, pageController);
                 onTap.call(date);
               },
             ),
@@ -223,6 +232,35 @@ Widget buildCalendar({
       },
     ),
   );
+}
+
+void _pageChangeOnDateTap(
+    DateTime date, DateTime currentDateTime, PageController pageController) {
+  if (date.year == currentDateTime.year) {
+    if (date.month < currentDateTime.month) {
+      pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else if (date.month > currentDateTime.month) {
+      pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+  if (date.year < currentDateTime.year) {
+    pageController.previousPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+  if (date.year > currentDateTime.year) {
+    pageController.nextPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
 }
 
 class CalendarDateWidget extends StatelessWidget {
@@ -234,6 +272,7 @@ class CalendarDateWidget extends StatelessWidget {
     this.isSelected = false,
     this.isToday = false,
     this.dotColor,
+    this.enabled = true,
     super.key,
   });
 
@@ -244,13 +283,16 @@ class CalendarDateWidget extends StatelessWidget {
   final bool isSelected;
   final void Function(DateTime date) onTap;
   final bool isToday;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
-        onTap.call(date);
-      },
+      onTap: enabled
+          ? () {
+              onTap.call(date);
+            }
+          : null,
       child: isSelected
           ? CircleAvatar(
               radius: 20,
@@ -279,23 +321,26 @@ class CalendarDateWidget extends StatelessWidget {
                       Text(
                         date.day.toString(),
                         style: textStyle.copyWith(
-                          color: Colors.black,
+                          color: enabled ? Colors.black : Colors.grey,
                         ),
                       ),
                       const SizedBox(
                         height: 6,
                       ),
-                      if (!isSelected)
+                      if (!isSelected && enabled)
                         Dot(
                           color: dotColor ?? Colors.transparent,
                         ),
-                      const SizedBox(
-                        height: 3,
-                      ),
-                      Text(
-                        activity,
-                        style: textStyle.copyWith(fontSize: 8),
-                      ),
+                      if (enabled)
+                        const SizedBox(
+                          height: 2,
+                        ),
+                      if (enabled)
+                        Text(
+                          activity.isEmpty ? "" : activity,
+                          textAlign: TextAlign.center,
+                          style: textStyle.copyWith(fontSize: 9),
+                        ),
                     ],
                   ),
                 ),
