@@ -240,8 +240,7 @@ class CalendarGrid extends StatelessWidget {
                 date: date,
                 textStyle: textStyle,
                 dotColor: calendardata.color ?? Colors.transparent,
-                showDot: calendardata.showDot,
-                activity: calendardata.text,
+                activity: calendardata.text ?? "",
                 onTap: (date) {
                   _pageChangeOnDateTap(date, currentDateTime, pageController);
                   onTap.call(date);
@@ -266,8 +265,7 @@ class CalendarGrid extends StatelessWidget {
                     date.year == DateTime.now().year,
                 date: date,
                 dotColor: calendardata.color ?? Colors.transparent,
-                showDot: calendardata.showDot,
-                activity: calendardata.text,
+                activity: calendardata.text ?? "",
                 textStyle: textStyle,
                 enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
                 onTap: (date) {
@@ -322,7 +320,6 @@ class CalendarDateWidget extends StatelessWidget {
     this.isToday = false,
     this.dotColor,
     this.enabled = true,
-    this.showDot = true,
     super.key,
   });
 
@@ -334,7 +331,6 @@ class CalendarDateWidget extends StatelessWidget {
   final void Function(DateTime date) onTap;
   final bool isToday;
   final bool enabled;
-  final bool showDot;
 
   @override
   Widget build(BuildContext context) {
@@ -379,7 +375,7 @@ class CalendarDateWidget extends StatelessWidget {
                     const SizedBox(
                       height: 7,
                     ),
-                    if (!isSelected && enabled && showDot)
+                    if (!isSelected && enabled && dotColor != null)
                       Dot(
                         color: dotColor ?? Colors.transparent,
                       ),
