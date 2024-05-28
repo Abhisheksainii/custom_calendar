@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_const_constructors
 
+import 'package:custom_calendar/src/helper/calendar_helper.dart';
+import 'package:custom_calendar/src/model/calendar_data_model.dart';
 import 'package:flutter/material.dart';
 
 // ignore: depend_on_referenced_packages
@@ -9,12 +11,17 @@ class CustomCalendar extends StatefulWidget {
   const CustomCalendar({
     required this.startDate,
     required this.endDate,
-    this.onTap,
+    required this.enableVerticalScroll,
+    required this.calendarData,
+    required this.onTap,
     super.key,
   });
   final DateTime startDate;
   final DateTime endDate;
   final void Function(DateTime date)? onTap;
+  final bool enableVerticalScroll;
+  final List<CalendarDataModel> calendarData;
+
   @override
   State<CustomCalendar> createState() => _CustomCalendarState();
 }
@@ -87,7 +94,23 @@ class _CustomCalendarState extends State<CustomCalendar> {
                 });
               },
               itemBuilder: (context, index) {
-                return buildCalendar(
+                final daysInCurrentMonth = DateTime(
+                  _currentDateTime.year,
+                  _currentDateTime.month + 1,
+                  0,
+                ).day;
+                final firstDayofMonth = DateTime(
+                  _currentDateTime.year,
+                  _currentDateTime.month,
+                  1,
+                );
+                final weekDayofFirstDay = firstDayofMonth.weekday;
+
+                final daysInPreviousMonth =
+                    firstDayofMonth.subtract(const Duration(days: 1)).day;
+                return CalendarGrid(
+                  verticalScrollEnabled: widget.enableVerticalScroll,
+                  calendarData: widget.calendarData,
                   currentDateTime: _currentDateTime,
                   selectedDate: _selectedDate,
                   pageController: _controller,
@@ -99,6 +122,10 @@ class _CustomCalendarState extends State<CustomCalendar> {
                     });
                     widget.onTap?.call(date);
                   },
+                  firstDayofMonth: firstDayofMonth,
+                  daysInCurrentMonth: daysInCurrentMonth,
+                  daysInPreviousMonth: daysInPreviousMonth,
+                  weekDayofFirstDay: weekDayofFirstDay,
                 );
               },
             ),
@@ -150,88 +177,108 @@ int _totalMonths({required DateTime startDate, required DateTime endDate}) {
       ((endDate.month - startDate.month) + 1));
 }
 
-Widget buildCalendar({
-  required DateTime currentDateTime,
-  required DateTime selectedDate,
-  required void Function(DateTime date) onTap,
-  required PageController pageController,
-  required DateTime startDate,
-  required DateTime endDate,
-}) {
-  final textStyle = TextStyle(
+class CalendarGrid extends StatelessWidget {
+  const CalendarGrid({
+    required this.currentDateTime,
+    required this.selectedDate,
+    required this.startDate,
+    required this.endDate,
+    required this.calendarData,
+    required this.onTap,
+    required this.verticalScrollEnabled,
+    required this.firstDayofMonth,
+    required this.daysInCurrentMonth,
+    required this.daysInPreviousMonth,
+    required this.weekDayofFirstDay,
+    required this.pageController,
+    super.key,
+  });
+
+  final DateTime currentDateTime;
+  final DateTime firstDayofMonth;
+  final DateTime selectedDate;
+  final DateTime startDate;
+  final DateTime endDate;
+  final List<CalendarDataModel> calendarData;
+  final void Function(DateTime date) onTap;
+  final bool verticalScrollEnabled;
+  final int daysInCurrentMonth;
+  final int daysInPreviousMonth;
+  final int weekDayofFirstDay;
+  final PageController pageController;
+
+  static const textStyle = TextStyle(
     fontSize: 11,
   );
-  final daysInCurrentMonth =
-      DateTime(currentDateTime.year, currentDateTime.month + 1, 0).day;
-  final firstDayofMonth =
-      DateTime(currentDateTime.year, currentDateTime.month, 1);
-  final weekDayofFirstDay = firstDayofMonth.weekday;
-  final lastDayofMonth =
-      DateTime(currentDateTime.year, currentDateTime.month + 1, 0);
-  final weekDayofLastDay = lastDayofMonth.weekday;
-
-  final daysInPreviousMonth =
-      firstDayofMonth.subtract(const Duration(days: 1)).day;
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    child: GridView.builder(
-      shrinkWrap: true,
-      itemCount:
-          daysInCurrentMonth + (weekDayofFirstDay - 1) + (7 - weekDayofLastDay),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        mainAxisSpacing: 15,
-        crossAxisCount: 7,
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: !verticalScrollEnabled ? NeverScrollableScrollPhysics() : null,
+        itemCount: daysInCurrentMonth + (weekDayofFirstDay - 1),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          mainAxisSpacing: 14,
+          crossAxisCount: 7,
+        ),
+        itemBuilder: (context, index) {
+          if (index < weekDayofFirstDay - 1) {
+            final prevMonthDay =
+                daysInPreviousMonth - (weekDayofFirstDay - index - 1) + 1;
+            final year = currentDateTime.month - 1 == 0
+                ? currentDateTime.year - 1
+                : currentDateTime.year;
+            final month =
+                currentDateTime.month - 1 == 0 ? 12 : currentDateTime.month - 1;
+            final date = DateTime(year, month, prevMonthDay);
+            final calendardata = calendarData
+                .firstWhere((element) => element.date.isSameDate(date));
+            return Padding(
+              padding: const EdgeInsets.only(left: 5),
+              child: CalendarDateWidget(
+                date: date,
+                textStyle: textStyle,
+                dotColor: calendardata.color ?? Colors.transparent,
+                activity: calendardata.text ?? "",
+                onTap: (date) {
+                  _pageChangeOnDateTap(date, currentDateTime, pageController);
+                  onTap.call(date);
+                },
+                enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
+              ),
+            );
+          } else {
+            final text = index - weekDayofFirstDay + 2;
+            final date =
+                DateTime(currentDateTime.year, currentDateTime.month, text);
+            final calendardata = calendarData
+                .firstWhere((element) => element.date.isSameDate(date));
+            return Padding(
+              padding: const EdgeInsets.only(left: 3),
+              child: CalendarDateWidget(
+                isSelected: date.day == selectedDate.day &&
+                    date.month == selectedDate.month &&
+                    date.year == selectedDate.year,
+                isToday: date.day == DateTime.now().day &&
+                    date.month == DateTime.now().month &&
+                    date.year == DateTime.now().year,
+                date: date,
+                dotColor: calendardata.color ?? Colors.transparent,
+                activity: calendardata.text ?? "",
+                textStyle: textStyle,
+                enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
+                onTap: (date) {
+                  _pageChangeOnDateTap(date, currentDateTime, pageController);
+                  onTap.call(date);
+                },
+              ),
+            );
+          }
+        },
       ),
-      itemBuilder: (context, index) {
-        if (index < weekDayofFirstDay - 1) {
-          final prevMonthDay =
-              daysInPreviousMonth - (weekDayofFirstDay - index - 1) + 1;
-          final year = currentDateTime.month - 1 == 0
-              ? currentDateTime.year - 1
-              : currentDateTime.year;
-          final month =
-              currentDateTime.month - 1 == 0 ? 12 : currentDateTime.month - 1;
-          final date = DateTime(year, month, prevMonthDay);
-          return Padding(
-            padding: const EdgeInsets.only(left: 5),
-            child: CalendarDateWidget(
-              date: date,
-              textStyle: TextStyle(color: Colors.grey),
-              activity: "activity",
-              enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
-              onTap: (date) {
-                _pageChangeOnDateTap(date, currentDateTime, pageController);
-                onTap.call(date);
-              },
-            ),
-          );
-        } else {
-          final text = index - weekDayofFirstDay + 2;
-          final date =
-              DateTime(currentDateTime.year, currentDateTime.month, text);
-          return Padding(
-            padding: const EdgeInsets.only(left: 3),
-            child: CalendarDateWidget(
-              activity: "retialing",
-              isSelected: date.day == selectedDate.day &&
-                  date.month == selectedDate.month &&
-                  date.year == selectedDate.year,
-              isToday: date.day == DateTime.now().day &&
-                  date.month == DateTime.now().month &&
-                  date.year == DateTime.now().year,
-              date: date,
-              enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
-              textStyle: textStyle,
-              onTap: (date) {
-                _pageChangeOnDateTap(date, currentDateTime, pageController);
-                onTap.call(date);
-              },
-            ),
-          );
-        }
-      },
-    ),
-  );
+    );
+  }
 }
 
 void _pageChangeOnDateTap(
@@ -305,44 +352,44 @@ class CalendarDateWidget extends StatelessWidget {
               ),
             )
           : isToday
-              ? CircleAvatar(
-                  radius: 20,
-                  child: Text(
-                    date.day.toString(),
-                    style: textStyle.copyWith(
-                      color: Colors.black,
+              ? Align(
+                  alignment: Alignment.topCenter,
+                  child: CircleAvatar(
+                    radius: 30,
+                    child: Text(
+                      date.day.toString(),
+                      style: textStyle.copyWith(
+                        color: Colors.black,
+                      ),
                     ),
                   ),
                 )
-              : Padding(
-                  padding: const EdgeInsets.only(top: 9),
-                  child: Column(
-                    children: [
-                      Text(
-                        date.day.toString(),
-                        style: textStyle.copyWith(
-                          color: enabled ? Colors.black : Colors.grey,
-                        ),
+              : Column(
+                  children: [
+                    Text(
+                      date.day.toString(),
+                      style: textStyle.copyWith(
+                        color: enabled ? Colors.black : Colors.grey,
                       ),
+                    ),
+                    const SizedBox(
+                      height: 7,
+                    ),
+                    if (!isSelected && enabled && dotColor != null)
+                      Dot(
+                        color: dotColor ?? Colors.transparent,
+                      ),
+                    if (enabled)
                       const SizedBox(
-                        height: 6,
+                        height: 2,
                       ),
-                      if (!isSelected && enabled)
-                        Dot(
-                          color: dotColor ?? Colors.transparent,
-                        ),
-                      if (enabled)
-                        const SizedBox(
-                          height: 2,
-                        ),
-                      if (enabled)
-                        Text(
-                          activity.isEmpty ? "" : activity,
-                          textAlign: TextAlign.center,
-                          style: textStyle.copyWith(fontSize: 9),
-                        ),
-                    ],
-                  ),
+                    if (enabled)
+                      Text(
+                        activity.isEmpty ? "" : activity,
+                        textAlign: TextAlign.center,
+                        style: textStyle.copyWith(fontSize: 9),
+                      ),
+                  ],
                 ),
     );
   }
