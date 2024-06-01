@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_const_constructors
 
+import 'package:custom_calendar/src/expandable_page_view.dart';
 import 'package:custom_calendar/src/helper/calendar_helper.dart';
 import 'package:custom_calendar/src/model/calendar_data_model.dart';
 import 'package:flutter/material.dart';
@@ -32,16 +33,45 @@ class _CustomCalendarState extends State<CustomCalendar> {
   late final PageController _controller;
 
   late int _currentIndex;
-  DateTime _selectedDate = DateTime.now();
+  DateTime? _selectedDate;
   @override
   void initState() {
     super.initState();
-    _currentIndex =
-        _totalMonths(startDate: widget.startDate, endDate: widget.endDate) -
-            _totalMonths(startDate: DateTime.now(), endDate: widget.endDate);
+    _currentIndex = _getCurrentIndex();
     _controller = PageController(initialPage: _currentIndex);
+    _selectedDate = DateTime.now().isAfter(widget.endDate)
+        ? null
+        : DateTime.now().isBefore(widget.startDate)
+            ? null
+            : DateTime.now();
+    _currentDateTime = _getCurrentDateTime();
+  }
 
-    _currentDateTime = DateTime.now();
+  DateTime _getCurrentDateTime() {
+    final _date = DateTime.now();
+    if (_date.isAfterMonth(widget.endDate)) {
+      return widget.endDate;
+    }
+    if (_date.isBeforeMonth(widget.startDate)) {
+      return widget.startDate;
+    }
+    return DateTime.now();
+  }
+
+  int _getCurrentIndex() {
+    final _date = DateTime.now();
+    if (_date.isAfterMonth(widget.endDate)) {
+      return _totalMonths(
+            startDate: widget.startDate,
+            endDate: widget.endDate,
+          ) -
+          1;
+    }
+    if (_date.isBeforeMonth(widget.startDate)) {
+      return 0;
+    }
+    return _totalMonths(startDate: widget.startDate, endDate: widget.endDate) -
+        _totalMonths(startDate: DateTime.now(), endDate: widget.endDate);
   }
 
   @override
@@ -51,7 +81,6 @@ class _CustomCalendarState extends State<CustomCalendar> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Color(0xFFCCCCCC)),
       ),
-      height: 500,
       child: Column(
         children: [
           const SizedBox(
@@ -76,59 +105,57 @@ class _CustomCalendarState extends State<CustomCalendar> {
           const SizedBox(
             height: 18,
           ),
-          Expanded(
-            child: PageView.builder(
-              controller: _controller,
-              itemCount: _totalMonths(
+          ExpandablePageView(
+            controller: _controller,
+            itemCount: _totalMonths(
+              startDate: widget.startDate,
+              endDate: widget.endDate,
+            ),
+            onPageChanged: (index) {
+              setState(() {
+                _currentDateTime = _getChangedMonth(
+                  currentDate: _currentDateTime,
+                  currentIndex: _currentIndex,
+                  index: index,
+                );
+                _currentIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              final daysInCurrentMonth = DateTime(
+                _currentDateTime.year,
+                _currentDateTime.month + 1,
+                0,
+              ).day;
+              final firstDayofMonth = DateTime(
+                _currentDateTime.year,
+                _currentDateTime.month,
+                1,
+              );
+              final weekDayofFirstDay = firstDayofMonth.weekday;
+
+              final daysInPreviousMonth =
+                  firstDayofMonth.subtract(const Duration(days: 1)).day;
+              return CalendarGrid(
+                verticalScrollEnabled: widget.enableVerticalScroll,
+                calendarData: widget.calendarData,
+                currentDateTime: _currentDateTime,
+                selectedDate: _selectedDate,
+                pageController: _controller,
                 startDate: widget.startDate,
                 endDate: widget.endDate,
-              ),
-              onPageChanged: (index) {
-                setState(() {
-                  _currentDateTime = _getChangedMonth(
-                    currentDate: _currentDateTime,
-                    currentIndex: _currentIndex,
-                    index: index,
-                  );
-                  _currentIndex = index;
-                });
-              },
-              itemBuilder: (context, index) {
-                final daysInCurrentMonth = DateTime(
-                  _currentDateTime.year,
-                  _currentDateTime.month + 1,
-                  0,
-                ).day;
-                final firstDayofMonth = DateTime(
-                  _currentDateTime.year,
-                  _currentDateTime.month,
-                  1,
-                );
-                final weekDayofFirstDay = firstDayofMonth.weekday;
-
-                final daysInPreviousMonth =
-                    firstDayofMonth.subtract(const Duration(days: 1)).day;
-                return CalendarGrid(
-                  verticalScrollEnabled: widget.enableVerticalScroll,
-                  calendarData: widget.calendarData,
-                  currentDateTime: _currentDateTime,
-                  selectedDate: _selectedDate,
-                  pageController: _controller,
-                  startDate: widget.startDate,
-                  endDate: widget.endDate,
-                  onTap: (date) {
-                    setState(() {
-                      _selectedDate = date;
-                    });
-                    widget.onTap?.call(date);
-                  },
-                  firstDayofMonth: firstDayofMonth,
-                  daysInCurrentMonth: daysInCurrentMonth,
-                  daysInPreviousMonth: daysInPreviousMonth,
-                  weekDayofFirstDay: weekDayofFirstDay,
-                );
-              },
-            ),
+                onTap: (date) {
+                  setState(() {
+                    _selectedDate = date;
+                  });
+                  widget.onTap?.call(date);
+                },
+                firstDayofMonth: firstDayofMonth,
+                daysInCurrentMonth: daysInCurrentMonth,
+                daysInPreviousMonth: daysInPreviousMonth,
+                weekDayofFirstDay: weekDayofFirstDay,
+              );
+            },
           ),
         ],
       ),
@@ -196,7 +223,7 @@ class CalendarGrid extends StatelessWidget {
 
   final DateTime currentDateTime;
   final DateTime firstDayofMonth;
-  final DateTime selectedDate;
+  final DateTime? selectedDate;
   final DateTime startDate;
   final DateTime endDate;
   final List<CalendarDataModel> calendarData;
@@ -257,9 +284,9 @@ class CalendarGrid extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(left: 3),
               child: CalendarDateWidget(
-                isSelected: date.day == selectedDate.day &&
-                    date.month == selectedDate.month &&
-                    date.year == selectedDate.year,
+                isSelected: date.day == selectedDate?.day &&
+                    date.month == selectedDate?.month &&
+                    date.year == selectedDate?.year,
                 isToday: date.day == DateTime.now().day &&
                     date.month == DateTime.now().month &&
                     date.year == DateTime.now().year,
