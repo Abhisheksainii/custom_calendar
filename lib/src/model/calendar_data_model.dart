@@ -9,6 +9,7 @@ abstract class CalendarDataModel with _$CalendarDataModel {
   const factory CalendarDataModel({
     required DateTime date,
     required Color? color,
-    required String? text,
+    required bool showDot,
+    required String text,
   }) = _CalendarDataModel;
 }
