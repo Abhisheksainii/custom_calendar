@@ -1,7 +1,4 @@
 library custom_calendar;
 
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+export 'src/calendar_widget.dart';
+export 'src/model/calendar_data_model.dart';

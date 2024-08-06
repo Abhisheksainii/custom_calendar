@@ -4,24 +4,25 @@ import 'package:custom_calendar/src/expandable_page_view.dart';
 import 'package:custom_calendar/src/helper/calendar_helper.dart';
 import 'package:custom_calendar/src/model/calendar_data_model.dart';
 import 'package:flutter/material.dart';
-
-// ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 
 class CustomCalendar extends StatefulWidget {
   const CustomCalendar({
     required this.startDate,
     required this.endDate,
-    required this.enableVerticalScroll,
-    required this.calendarData,
-    required this.onTap,
+    this.enableVerticalScroll = false,
+    this.calendarData = const [],
+    this.showBottomBar = true,
+    this.onTap,
     super.key,
   });
+
   final DateTime startDate;
   final DateTime endDate;
   final void Function(DateTime date)? onTap;
+  final List<CalendarDataModel>? calendarData;
   final bool enableVerticalScroll;
-  final List<CalendarDataModel> calendarData;
+  final bool showBottomBar;
 
   @override
   State<CustomCalendar> createState() => _CustomCalendarState();
@@ -33,17 +34,18 @@ class _CustomCalendarState extends State<CustomCalendar> {
   late final PageController _controller;
 
   late int _currentIndex;
-  DateTime? _selectedDate;
+  late DateTime _selectedDate;
+
   @override
   void initState() {
     super.initState();
     _currentIndex = _getCurrentIndex();
-    _controller = PageController(initialPage: _currentIndex);
+    _controller =
+        PageController(initialPage: _currentIndex, viewportFraction: 0.99);
     _selectedDate = DateTime.now().isAfter(widget.endDate)
-        ? null
-        : DateTime.now().isBefore(widget.startDate)
-            ? null
-            : DateTime.now();
+        ? widget.endDate
+        : DateTime.now();
+
     _currentDateTime = _getCurrentDateTime();
   }
 
@@ -107,6 +109,7 @@ class _CustomCalendarState extends State<CustomCalendar> {
           ),
           ExpandablePageView(
             controller: _controller,
+            currentIndex: _currentIndex,
             itemCount: _totalMonths(
               startDate: widget.startDate,
               endDate: widget.endDate,
@@ -114,10 +117,9 @@ class _CustomCalendarState extends State<CustomCalendar> {
             onPageChanged: (index) {
               setState(() {
                 _currentDateTime = _getChangedMonth(
-                  currentDate: _currentDateTime,
-                  currentIndex: _currentIndex,
-                  index: index,
-                );
+                    currentIndex: _currentIndex,
+                    index: index,
+                    currentDate: _currentDateTime);
                 _currentIndex = index;
               });
             },
@@ -138,10 +140,9 @@ class _CustomCalendarState extends State<CustomCalendar> {
                   firstDayofMonth.subtract(const Duration(days: 1)).day;
               return CalendarGrid(
                 verticalScrollEnabled: widget.enableVerticalScroll,
-                calendarData: widget.calendarData,
+                calendarData: widget.calendarData ?? [],
                 currentDateTime: _currentDateTime,
                 selectedDate: _selectedDate,
-                pageController: _controller,
                 startDate: widget.startDate,
                 endDate: widget.endDate,
                 onTap: (date) {
@@ -200,8 +201,8 @@ DateTime _getChangedMonth({
 }
 
 int _totalMonths({required DateTime startDate, required DateTime endDate}) {
-  return ((endDate.year - startDate.year) * 12 +
-      ((endDate.month - startDate.month) + 1));
+  return (endDate.year - startDate.year) * 12 +
+      ((endDate.month - startDate.month) + 1);
 }
 
 class CalendarGrid extends StatelessWidget {
@@ -217,7 +218,6 @@ class CalendarGrid extends StatelessWidget {
     required this.daysInCurrentMonth,
     required this.daysInPreviousMonth,
     required this.weekDayofFirstDay,
-    required this.pageController,
     super.key,
   });
 
@@ -232,21 +232,23 @@ class CalendarGrid extends StatelessWidget {
   final int daysInCurrentMonth;
   final int daysInPreviousMonth;
   final int weekDayofFirstDay;
-  final PageController pageController;
 
   static const textStyle = TextStyle(
     fontSize: 11,
+    color: Colors.black,
   );
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: GridView.builder(
         shrinkWrap: true,
+        padding: EdgeInsets.zero,
         physics: !verticalScrollEnabled ? NeverScrollableScrollPhysics() : null,
         itemCount: daysInCurrentMonth + (weekDayofFirstDay - 1),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          mainAxisSpacing: 14,
+          mainAxisSpacing: 8,
           crossAxisCount: 7,
         ),
         itemBuilder: (context, index) {
@@ -260,18 +262,17 @@ class CalendarGrid extends StatelessWidget {
                 currentDateTime.month - 1 == 0 ? 12 : currentDateTime.month - 1;
             final date = DateTime(year, month, prevMonthDay);
             final calendardata = calendarData
-                .firstWhere((element) => element.date.isSameDate(date));
+                .where((element) => element.date.isSameDate(date))
+                .firstOrNull;
             return Padding(
               padding: const EdgeInsets.only(left: 5),
               child: CalendarDateWidget(
                 date: date,
                 textStyle: textStyle,
-                dotColor: calendardata.color ?? Colors.transparent,
-                activity: calendardata.text ?? "",
-                onTap: (date) {
-                  _pageChangeOnDateTap(date, currentDateTime, pageController);
-                  onTap.call(date);
-                },
+                dotColor: calendardata?.color ?? Colors.transparent,
+                showDot: calendardata?.showDot ?? false,
+                activity: calendardata?.text ?? "",
+                onTap: onTap.call,
                 enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
               ),
             );
@@ -280,7 +281,8 @@ class CalendarGrid extends StatelessWidget {
             final date =
                 DateTime(currentDateTime.year, currentDateTime.month, text);
             final calendardata = calendarData
-                .firstWhere((element) => element.date.isSameDate(date));
+                .where((element) => element.date.isSameDate(date))
+                .firstOrNull;
             return Padding(
               padding: const EdgeInsets.only(left: 3),
               child: CalendarDateWidget(
@@ -291,48 +293,17 @@ class CalendarGrid extends StatelessWidget {
                     date.month == DateTime.now().month &&
                     date.year == DateTime.now().year,
                 date: date,
-                dotColor: calendardata.color ?? Colors.transparent,
-                activity: calendardata.text ?? "",
+                dotColor: calendardata?.color ?? Colors.transparent,
+                showDot: calendardata?.showDot ?? false,
+                activity: calendardata?.text ?? "",
                 textStyle: textStyle,
                 enabled: !date.isBefore(startDate) && !date.isAfter(endDate),
-                onTap: (date) {
-                  _pageChangeOnDateTap(date, currentDateTime, pageController);
-                  onTap.call(date);
-                },
+                onTap: onTap.call,
               ),
             );
           }
         },
       ),
-    );
-  }
-}
-
-void _pageChangeOnDateTap(
-    DateTime date, DateTime currentDateTime, PageController pageController) {
-  if (date.year == currentDateTime.year) {
-    if (date.month < currentDateTime.month) {
-      pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } else if (date.month > currentDateTime.month) {
-      pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-  if (date.year < currentDateTime.year) {
-    pageController.previousPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-  if (date.year > currentDateTime.year) {
-    pageController.nextPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
     );
   }
 }
@@ -347,6 +318,8 @@ class CalendarDateWidget extends StatelessWidget {
     this.isToday = false,
     this.dotColor,
     this.enabled = true,
+    this.showDot = true,
+    this.todayDateColor,
     super.key,
   });
 
@@ -358,6 +331,8 @@ class CalendarDateWidget extends StatelessWidget {
   final void Function(DateTime date) onTap;
   final bool isToday;
   final bool enabled;
+  final bool showDot;
+  final Color? todayDateColor;
 
   @override
   Widget build(BuildContext context) {
@@ -370,7 +345,7 @@ class CalendarDateWidget extends StatelessWidget {
       child: isSelected
           ? CircleAvatar(
               radius: 20,
-              backgroundColor: Color(0xffEE6C35),
+              backgroundColor: Theme.of(context).colorScheme.secondary,
               child: Text(
                 date.day.toString(),
                 style: textStyle.copyWith(
@@ -382,6 +357,7 @@ class CalendarDateWidget extends StatelessWidget {
               ? Align(
                   alignment: Alignment.topCenter,
                   child: CircleAvatar(
+                    backgroundColor: todayDateColor,
                     radius: 30,
                     child: Text(
                       date.day.toString(),
@@ -399,10 +375,8 @@ class CalendarDateWidget extends StatelessWidget {
                         color: enabled ? Colors.black : Colors.grey,
                       ),
                     ),
-                    const SizedBox(
-                      height: 7,
-                    ),
-                    if (!isSelected && enabled && dotColor != null)
+                    const SizedBox(height: 2),
+                    if (!isSelected && enabled && showDot)
                       Dot(
                         color: dotColor ?? Colors.transparent,
                       ),
@@ -411,10 +385,17 @@ class CalendarDateWidget extends StatelessWidget {
                         height: 2,
                       ),
                     if (enabled)
-                      Text(
-                        activity.isEmpty ? "" : activity,
-                        textAlign: TextAlign.center,
-                        style: textStyle.copyWith(fontSize: 9),
+                      SizedBox(
+                        width: 32,
+                        child: Text(
+                          activity.isEmpty ? "" : activity,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: Colors.black,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -427,12 +408,14 @@ class Dot extends StatelessWidget {
     required this.color,
     super.key,
   });
+
   final Color color;
+
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: 2,
-      backgroundColor: Color(0xff4DA430),
+      backgroundColor: color,
     );
   }
 }
@@ -487,7 +470,7 @@ class MonthYearHeader extends StatelessWidget {
             child: InkWell(
               onTap: () {
                 pageController.previousPage(
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 100),
                   curve: Curves.easeInOut,
                 );
               },
@@ -504,7 +487,7 @@ class MonthYearHeader extends StatelessWidget {
             style: TextStyle(
               color: Color(0xFF072A72),
               fontSize: 13,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
           Visibility(
@@ -512,7 +495,7 @@ class MonthYearHeader extends StatelessWidget {
             child: InkWell(
               onTap: () {
                 pageController.nextPage(
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 100),
                   curve: Curves.easeInOut,
                 );
               },
@@ -536,6 +519,7 @@ class WeekHeader extends StatelessWidget {
     fontSize: 12,
     fontWeight: FontWeight.w400,
   );
+
   @override
   Widget build(BuildContext context) {
     return Padding(

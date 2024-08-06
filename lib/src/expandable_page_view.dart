@@ -7,13 +7,14 @@ class ExpandablePageView extends StatefulWidget {
     this.controller,
     this.onPageChanged,
     this.reverse = false,
+    this.currentIndex = 0,
     super.key,
   });
   final int itemCount;
   final Widget Function(BuildContext, int) itemBuilder;
   final PageController? controller;
   final ValueChanged<int>? onPageChanged;
-
+  final int currentIndex;
   final bool reverse;
 
   @override
@@ -22,54 +23,40 @@ class ExpandablePageView extends StatefulWidget {
 
 class _ExpandablePageViewState extends State<ExpandablePageView> {
   PageController? _pageController;
-  List<double> _heights = [];
-  int _currentIndex = 0;
 
-  double get _currentHeight => _heights[_currentIndex];
+  // ignore: unused_field
+  int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _heights = List.filled(widget.itemCount, 0, growable: true);
-    _pageController = widget.controller ?? PageController();
-    _pageController?.addListener(_updatePage);
-    _currentIndex = widget.controller?.initialPage ?? 0;
+    _pageController = widget.controller ?? PageController(viewportFraction: 1);
+    _currentIndex = widget.currentIndex;
   }
 
   @override
   void dispose() {
-    _pageController?.removeListener(_updatePage);
     _pageController?.dispose();
     super.dispose();
   }
 
+  double _selectedPageHeight = 0;
+
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Opacity(
-          opacity: 0,
-          child: SizeReportingWidget(
-            onSizeChange: (size) =>
-                setState(() => _heights[_currentIndex] = size.height),
-            child: widget.itemBuilder(context, _currentIndex),
-          ),
-        ),
-        TweenAnimationBuilder<double>(
-          curve: Curves.easeInOutCubic,
-          tween: Tween<double>(begin: _heights.first, end: _currentHeight),
-          duration: const Duration(milliseconds: 100),
-          builder: (context, value, child) =>
-              SizedBox(height: value, child: child),
-          child: PageView.builder(
-            controller: _pageController,
-            itemCount: widget.itemCount,
-            itemBuilder: _itemBuilder,
-            onPageChanged: widget.onPageChanged,
-            reverse: widget.reverse,
-          ),
-        ),
-      ],
+    return TweenAnimationBuilder<double>(
+      curve: Curves.easeInOut,
+      tween:
+          Tween<double>(begin: _selectedPageHeight, end: _selectedPageHeight),
+      duration: const Duration(milliseconds: 100),
+      builder: (context, value, child) => SizedBox(height: value, child: child),
+      child: PageView.builder(
+        controller: _pageController,
+        itemCount: widget.itemCount,
+        itemBuilder: _itemBuilder,
+        onPageChanged: widget.onPageChanged,
+        reverse: widget.reverse,
+      ),
     );
   }
 
@@ -81,19 +68,14 @@ class _ExpandablePageViewState extends State<ExpandablePageView> {
       maxHeight: double.infinity,
       alignment: Alignment.topCenter,
       child: SizeReportingWidget(
-        onSizeChange: (size) => setState(() => _heights[index] = size.height),
+        onSizeChange: (size) {
+          setState(() {
+            _selectedPageHeight = size.height;
+          });
+        },
         child: item,
       ),
     );
-  }
-
-  void _updatePage() {
-    final newPage = _pageController?.page?.round();
-    if (_currentIndex != newPage) {
-      setState(() {
-        _currentIndex = newPage ?? _currentIndex;
-      });
-    }
   }
 }
 
@@ -114,8 +96,13 @@ class _SizeReportingWidgetState extends State<SizeReportingWidget> {
   Size? _oldSize;
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _notifySize());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return widget.child;
   }
 

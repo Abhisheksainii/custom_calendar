@@ -18,7 +18,8 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$CalendarDataModel {
   DateTime get date => throw _privateConstructorUsedError;
   Color? get color => throw _privateConstructorUsedError;
-  String? get text => throw _privateConstructorUsedError;
+  bool get showDot => throw _privateConstructorUsedError;
+  String get text => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $CalendarDataModelCopyWith<CalendarDataModel> get copyWith =>
@@ -31,7 +32,7 @@ abstract class $CalendarDataModelCopyWith<$Res> {
           CalendarDataModel value, $Res Function(CalendarDataModel) then) =
       _$CalendarDataModelCopyWithImpl<$Res, CalendarDataModel>;
   @useResult
-  $Res call({DateTime date, Color? color, String? text});
+  $Res call({DateTime date, Color? color, bool showDot, String text});
 }
 
 /// @nodoc
@@ -49,7 +50,8 @@ class _$CalendarDataModelCopyWithImpl<$Res, $Val extends CalendarDataModel>
   $Res call({
     Object? date = null,
     Object? color = freezed,
-    Object? text = freezed,
+    Object? showDot = null,
+    Object? text = null,
   }) {
     return _then(_value.copyWith(
       date: null == date
@@ -60,10 +62,14 @@ class _$CalendarDataModelCopyWithImpl<$Res, $Val extends CalendarDataModel>
           ? _value.color
           : color // ignore: cast_nullable_to_non_nullable
               as Color?,
-      text: freezed == text
+      showDot: null == showDot
+          ? _value.showDot
+          : showDot // ignore: cast_nullable_to_non_nullable
+              as bool,
+      text: null == text
           ? _value.text
           : text // ignore: cast_nullable_to_non_nullable
-              as String?,
+              as String,
     ) as $Val);
   }
 }
@@ -76,7 +82,7 @@ abstract class _$$CalendarDataModelImplCopyWith<$Res>
       __$$CalendarDataModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({DateTime date, Color? color, String? text});
+  $Res call({DateTime date, Color? color, bool showDot, String text});
 }
 
 /// @nodoc
@@ -92,7 +98,8 @@ class __$$CalendarDataModelImplCopyWithImpl<$Res>
   $Res call({
     Object? date = null,
     Object? color = freezed,
-    Object? text = freezed,
+    Object? showDot = null,
+    Object? text = null,
   }) {
     return _then(_$CalendarDataModelImpl(
       date: null == date
@@ -103,10 +110,14 @@ class __$$CalendarDataModelImplCopyWithImpl<$Res>
           ? _value.color
           : color // ignore: cast_nullable_to_non_nullable
               as Color?,
-      text: freezed == text
+      showDot: null == showDot
+          ? _value.showDot
+          : showDot // ignore: cast_nullable_to_non_nullable
+              as bool,
+      text: null == text
           ? _value.text
           : text // ignore: cast_nullable_to_non_nullable
-              as String?,
+              as String,
     ));
   }
 }
@@ -115,18 +126,23 @@ class __$$CalendarDataModelImplCopyWithImpl<$Res>
 
 class _$CalendarDataModelImpl implements _CalendarDataModel {
   const _$CalendarDataModelImpl(
-      {required this.date, required this.color, required this.text});
+      {required this.date,
+      required this.color,
+      required this.showDot,
+      required this.text});
 
   @override
   final DateTime date;
   @override
   final Color? color;
   @override
-  final String? text;
+  final bool showDot;
+  @override
+  final String text;
 
   @override
   String toString() {
-    return 'CalendarDataModel(date: $date, color: $color, text: $text)';
+    return 'CalendarDataModel(date: $date, color: $color, showDot: $showDot, text: $text)';
   }
 
   @override
@@ -136,11 +152,12 @@ class _$CalendarDataModelImpl implements _CalendarDataModel {
             other is _$CalendarDataModelImpl &&
             (identical(other.date, date) || other.date == date) &&
             (identical(other.color, color) || other.color == color) &&
+            (identical(other.showDot, showDot) || other.showDot == showDot) &&
             (identical(other.text, text) || other.text == text));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, date, color, text);
+  int get hashCode => Object.hash(runtimeType, date, color, showDot, text);
 
   @JsonKey(ignore: true)
   @override
@@ -154,14 +171,17 @@ abstract class _CalendarDataModel implements CalendarDataModel {
   const factory _CalendarDataModel(
       {required final DateTime date,
       required final Color? color,
-      required final String? text}) = _$CalendarDataModelImpl;
+      required final bool showDot,
+      required final String text}) = _$CalendarDataModelImpl;
 
   @override
   DateTime get date;
   @override
   Color? get color;
   @override
-  String? get text;
+  bool get showDot;
+  @override
+  String get text;
   @override
   @JsonKey(ignore: true)
   _$$CalendarDataModelImplCopyWith<_$CalendarDataModelImpl> get copyWith =>
